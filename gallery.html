@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery - Image Optimizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">📸 Image Optimizer</h1>
+            <div class="nav-links">
+                <a href="index.html"><i class="fas fa-upload"></i> Upload</a>
+                <a href="gallery.html" class="active"><i class="fas fa-images"></i> Gallery</a>
+                <button id="loginBtn" class="btn-outline">Sign In</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="card">
+            <div class="gallery-header">
+                <h2><i class="fas fa-images"></i> Processed Images</h2>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search images...">
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="filter-tags">
+                    <button class="filter-tag active" data-filter="all">All</button>
+                    <button class="filter-tag" data-filter="webp">WebP</button>
+                    <button class="filter-tag" data-filter="watermark">Watermarked</button>
+                    <button class="filter-tag" data-filter="recent">Recent</button>
+                </div>
+                <div class="sort-dropdown">
+                    <select id="sortSelect">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="size">Largest Size</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Images will be loaded here -->
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading images...</p>
+                </div>
+            </div>
+
+            <div class="gallery-actions">
+                <button class="btn-secondary" id="loadMore">
+                    <i class="fas fa-plus"></i> Load More
+                </button>
+                <button class="btn-primary" onclick="window.location.href='index.html'">
+                    <i class="fas fa-upload"></i> Upload More Images
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Image Modal -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Image Preview</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-image-container">
+                    <img id="modalImage" src="" alt="">
+                </div>
+                <div class="image-details">
+                    <h4>Available Sizes</h4>
+                    <div class="size-options" id="sizeOptions">
+                        <!-- Size options will be populated here -->
+                    </div>
+                    <div class="image-actions">
+                        <button class="btn-secondary" onclick="downloadImage()">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn-primary" onclick="copyImageLink()">
+                            <i class="fas fa-copy"></i> Copy URL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Serverless Image Processing Pipeline &copy; 2024</p>
+            <p class="footer-links">
+                <a href="#"><i class="fab fa-github"></i> GitHub</a>
+                |
+                <a href="#"><i class="fas fa-book"></i> Docs</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="gallery.js"></script>
+</body>
+</html>

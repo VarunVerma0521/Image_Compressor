@@ -21,21 +21,49 @@ let currentSessionId = null;
 let pollInterval = null;
 
 // Initialize AWS SDK
-function initAWS() {
-    // For now, use temporary credentials
-    // We'll add Cognito in Phase 4
-    AWS.config.update({
-        region: config.region
-    });
-    
-    // Create S3 instance for uploads
-    s3 = new AWS.S3({
-        apiVersion: '2006-03-01',
-        params: { Bucket: config.uploadsBucket }
-    });
-    
-    // Load recent images on page load
-    loadRecentImages();
+async function initAWS() {
+    try {
+        showStatus('Initializing...', 'success');
+        
+        // For now, use anonymous credentials (no authentication)
+        // We'll add Cognito later
+        AWS.config.update({
+            region: config.region,
+            credentials: new AWS.CognitoIdentityCredentials({
+                IdentityPoolId: `us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` // We'll fix this later
+            })
+        });
+        
+        // Override with temporary access (for development only)
+        // This allows uploads without authentication
+        AWS.config.credentials = {
+            accessKeyId: 'temporary',
+            secretAccessKey: 'temporary',
+            get: function(callback) {
+                callback();
+            }
+        };
+        
+        // Create S3 instance
+        s3 = new AWS.S3({
+            apiVersion: '2006-03-01',
+            params: { Bucket: config.uploadsBucket },
+            // Important: Don't validate credentials for now
+            signatureVersion: 'v4'
+        });
+        
+        console.log('AWS S3 initialized successfully');
+        
+        // Test if S3 is working
+        await testS3Connection();
+        
+    } catch (error) {
+        console.error('AWS initialization failed:', error);
+        showStatus('Warning: Running in demo mode. Uploads will be simulated.', 'error');
+        
+        // Fallback: Create a mock S3 object for testing
+        s3 = createMockS3();
+    }
 }
 
 // Upload image to S3

@@ -1,7 +1,7 @@
 // Configuration
 const config = {
     region: 'ap-south-1', 
-    uploadsBucket: 'image.compressor.input.bucket',
+    uploadsBucket: 'input-bucket-image-compressor',
     apiEndpoint: 'https://mmduo1gln9.execute-api.ap-south-1.amazonaws.com/prod' // We'll add this later when we create API Gateway
 };
 

@@ -1,8 +1,8 @@
-// Configuration - UPDATE THESE WITH YOUR VALUES
+// Configuration
 const config = {
     region: 'ap-south-1', 
     uploadsBucket: 'image.compressor.input.bucket',
-    apiEndpoint: '' // We'll add this later when we create API Gateway
+    apiEndpoint: 'https://mmduo1gln9.execute-api.ap-south-1.amazonaws.com/prod' // We'll add this later when we create API Gateway
 };
 
 // DOM Elements
@@ -12,24 +12,30 @@ const progressBar = document.getElementById('progressBar');
 const statusDiv = document.getElementById('status');
 const resultsDiv = document.getElementById('results');
 const imageLinksDiv = document.getElementById('imageLinks');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
-// AWS SDK Configuration (will be loaded from CDN later)
+// AWS SDK Configuration
 let s3;
+let currentSessionId = null;
+let pollInterval = null;
 
 // Initialize AWS SDK
 function initAWS() {
-    // We'll configure this properly after Cognito setup
-    AWS.config.region = config.region;
-    
-    // Temporary credentials for upload (we'll replace with Cognito later)
-    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-        IdentityPoolId: '' // We'll add this after Cognito setup
+    // For now, use temporary credentials
+    // We'll add Cognito in Phase 4
+    AWS.config.update({
+        region: config.region
     });
     
+    // Create S3 instance for uploads
     s3 = new AWS.S3({
         apiVersion: '2006-03-01',
         params: { Bucket: config.uploadsBucket }
     });
+    
+    // Load recent images on page load
+    loadRecentImages();
 }
 
 // Upload image to S3
@@ -52,12 +58,14 @@ async function uploadImage() {
         return;
     }
 
-    // Generate unique filename
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    // Generate unique session ID and filename
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const fileName = `${sessionId}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     
     // Show progress bar
     progressBar.style.display = 'block';
     progressBar.value = 0;
+    currentSessionId = sessionId;
     
     try {
         // Upload to S3
@@ -65,7 +73,7 @@ async function uploadImage() {
             Key: `uploads/${fileName}`,
             Body: file,
             ContentType: file.type,
-            ACL: 'private' // Private uploads
+            ACL: 'private'
         };
 
         await s3.upload(params)
@@ -77,16 +85,119 @@ async function uploadImage() {
 
         showStatus('✅ Upload successful! Processing image...', 'success');
         
-        // In Phase 3, we'll add API call to trigger processing
-        // For now, just show success message
-        setTimeout(() => {
-            showStatus('Image processing started. Check back in a few moments!', 'success');
-        }, 2000);
+        // Start polling for processed images
+        startPollingForResults(sessionId);
+        
+        // Clear file input
+        fileInput.value = '';
 
     } catch (error) {
         console.error('Upload error:', error);
         showStatus(`Upload failed: ${error.message}`, 'error');
     }
+}
+
+// Poll API for processed images
+function startPollingForResults(sessionId) {
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 2 seconds = 1 minute timeout
+    
+    pollInterval = setInterval(async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+            clearInterval(pollInterval);
+            showStatus('Processing timeout. Please check back later.', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${config.apiEndpoint}/images/${sessionId}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Check if we have all resolutions
+                if (data.resolutions && Object.keys(data.resolutions).length >= 3) {
+                    clearInterval(pollInterval);
+                    
+                    // Display results
+                    displayProcessedImages(data.resolutions);
+                    showStatus('✅ Image processing completed!', 'success');
+                    
+                    // Add to recent images list
+                    loadRecentImages();
+                } else {
+                    showStatus(`Processing... (${attempts}/${maxAttempts})`, 'success');
+                }
+            }
+        } catch (error) {
+            console.log('Polling attempt failed:', error);
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+// Display processed image links
+function displayProcessedImages(resolutions) {
+    resultsDiv.style.display = 'block';
+    imageLinksDiv.innerHTML = '';
+    
+    Object.entries(resolutions).forEach(([size, data]) => {
+        if (!data.url) return;
+        
+        const div = document.createElement('div');
+        div.className = 'image-result';
+        div.style.margin = '15px 0';
+        div.style.padding = '10px';
+        div.style.border = '1px solid #ddd';
+        div.style.borderRadius = '5px';
+        
+        div.innerHTML = `
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <strong style="min-width: 100px;">${size.toUpperCase()}:</strong>
+                <span style="margin-left: 10px; font-size: 12px; color: #666;">${data.size || ''}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <a href="${data.url}" target="_blank" style="flex: 1; word-break: break-all;">
+                    ${data.url}
+                </a>
+                <button onclick="copyToClipboard('${data.url}')" style="margin-left: 10px; padding: 5px 10px;">
+                    Copy
+                </button>
+            </div>
+            <img src="${data.url}" 
+                 style="max-width: 300px; margin-top: 10px; border: 1px solid #eee; border-radius: 3px;"
+                 onerror="this.style.display='none'">
+        `;
+        imageLinksDiv.appendChild(div);
+    });
+}
+
+// Load recent images from API
+async function loadRecentImages() {
+    try {
+        const response = await fetch(`${config.apiEndpoint}/images`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Optional: Display recent images section
+            if (data.images && data.images.length > 0) {
+                console.log('Recent images loaded:', data.images.length);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading recent images:', error);
+    }
+}
+
+// Copy URL to clipboard
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showStatus('URL copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Copy failed:', err);
+    });
 }
 
 // Display status messages
@@ -98,41 +209,40 @@ function showStatus(message, type) {
     // Auto-hide success messages after 5 seconds
     if (type === 'success') {
         setTimeout(() => {
-            statusDiv.style.display = 'none';
+            if (statusDiv.textContent === message) {
+                statusDiv.style.display = 'none';
+            }
         }, 5000);
     }
-}
-
-// Display processed image links (will be populated from API later)
-function displayProcessedImages(imageData) {
-    resultsDiv.style.display = 'block';
-    imageLinksDiv.innerHTML = '';
-    
-    Object.entries(imageData).forEach(([size, url]) => {
-        const div = document.createElement('div');
-        div.style.margin = '10px 0';
-        div.innerHTML = `
-            <strong>${size}:</strong>
-            <a href="${url}" target="_blank">${url}</a>
-            <br>
-            <img src="${url}" style="max-width: 200px; margin-top: 5px; border: 1px solid #ddd;">
-        `;
-        imageLinksDiv.appendChild(div);
-    });
 }
 
 // Cognito functions (to be implemented in Phase 4)
 function login() {
     showStatus('Cognito login will be implemented in Phase 4', 'success');
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
 }
 
 function logout() {
-    showStatus('Logout will be implemented in Phase 4', 'success');
+    showStatus('Logged out successfully', 'success');
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+    resultsDiv.style.display = 'none';
+    imageLinksDiv.innerHTML = '';
 }
 
 // Initialize when page loads
 window.onload = function() {
     initAWS();
-    // For now, allow uploads without authentication
-    // We'll add Cognito auth in Phase 4
+    
+    // Add event listener for file input changes
+    fileInput.addEventListener('change', function() {
+        if (this.files[0]) {
+            const fileName = this.files[0].name;
+            showStatus(`Selected: ${fileName}`, 'success');
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 2000);
+        }
+    });
 };

@@ -1,137 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Optimizer - Upload</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 10px;
-        }
-        .upload-section {
-            margin: 30px 0;
-            padding: 20px;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            text-align: center;
-        }
-        #fileInput {
-            padding: 10px;
-            margin: 10px 0;
-        }
-        #uploadBtn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #uploadBtn:hover {
-            background-color: #45a049;
-        }
-        #progressBar {
-            width: 100%;
-            height: 20px;
-            margin: 20px 0;
-            display: none;
-        }
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .login-section {
-            text-align: right;
-            margin-bottom: 20px;
-        }
-        #loginBtn, #logoutBtn {
-            background-color: #008CBA;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .image-result {
-    background: #f9f9f9;
-    transition: background 0.3s;
-}
-.image-result:hover {
-    background: #f0f0f0;
-}
-.image-result button {
-    background: #008CBA;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-.image-result button:hover {
-    background: #007B9A;
-}
-#results h3 {
-    color: #333;
-    border-bottom: 2px solid #4CAF50;
-    padding-bottom: 10px;
-    margin-top: 30px;
-}
-    </style>
+    <title>AWS Image Processing Pipeline</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Placeholder favicon -->
+    <link rel="icon" href="https://fontawesome.com/icons/down-left-and-up-right-to-center?f=classic&s=solid" type="image/x-icon">
 </head>
+
 <body>
     <div class="container">
-        <div class="login-section">
-            <button id="loginBtn" onclick="login()">Sign In / Login</button>
-            <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
-        </div>
-        
-        <h1>📸 Image Optimization Pipeline</h1>
-        <p>Upload high-resolution images and get optimized versions for web use.</p>
-        
-        <div class="upload-section">
-            <h3>Upload Image</h3>
-            <input type="file" id="fileInput" accept="image/*">
-            <br>
-            <button id="uploadBtn" onclick="uploadImage()">Upload & Optimize</button>
-            
-            <progress id="progressBar" value="0" max="100"></progress>
-            
-            <div id="status"></div>
-        </div>
-        
-        <div id="results" style="display:none;">
-            <h3>Optimized Images</h3>
-            <div id="imageLinks"></div>
-        </div>
+
+        <header>
+            <h1><i class="fas fa-cloud-upload-alt"></i> AWS Image Processing Pipeline</h1>
+            <p class="subtitle">Upload high-resolution images and get optimized versions for web use</p>
+        </header>
+
+        <main>
+
+            <!-- ========================== UPLOAD SECTION ========================== -->
+            <section class="upload-section">
+
+                <!-- CLICKABLE DROP AREA -->
+                <div class="upload-area" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3>Drag & Drop Images Here</h3>
+                    <p class="upload-hint">or click to browse (JPG, PNG, WebP, GIF)</p>
+                    <p class="file-size-note">Max file size: 10MB per image</p>
+                </div>
+
+                <!-- HIDDEN FILE INPUT TRIGGERED ONLY BY JS -->
+                <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+
+                <!-- PROCESSING OPTIONS -->
+                <div class="options-section">
+                    <h3><i class="fas fa-sliders-h"></i> Processing Options</h3>
+
+                    <div class="option-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="resize1080p" checked>
+                            <span class="checkmark"></span>
+                            Generate 1080p version (1920×1080)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="resize720p" checked>
+                            <span class="checkmark"></span>
+                            Generate 720p version (1280×720)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="resize480p" checked>
+                            <span class="checkmark"></span>
+                            Generate 480p version (854×480)
+                        </label>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="compressImage" checked>
+                            <span class="checkmark"></span>
+                            Compress images (optimize file size)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="convertWebP">
+                            <span class="checkmark"></span>
+                            Convert to WebP format
+                        </label>
+                    </div>
+
+                    <button id="processButton" class="process-btn" disabled>
+                        <i class="fas fa-cogs"></i> Process Images
+                    </button>
+                </div>
+
+            </section>
+
+            <!-- ========================== PROGRESS SECTION ========================== -->
+            <section class="progress-section hidden" id="progressSection">
+                <h3><i class="fas fa-spinner fa-spin"></i> Processing Images</h3>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+                <p class="progress-status" id="progressStatus">Uploading images to S3...</p>
+            </section>
+
+            <!-- ========================== RESULTS SECTION ========================== -->
+            <section class="results-section hidden" id="resultsSection">
+                <h3><i class="fas fa-check-circle"></i> Processing Complete</h3>
+                <div class="results-container" id="resultsContainer"></div>
+
+                <button id="processMoreBtn" class="secondary-btn">
+                    <i class="fas fa-plus"></i> Process More Images
+                </button>
+            </section>
+
+            <!-- ========================== PREVIEW SECTION ========================== -->
+            <section class="preview-section hidden" id="previewSection">
+                <h3><i class="fas fa-images"></i> Selected Images</h3>
+                <div class="preview-container" id="previewContainer"></div>
+                <p class="preview-count" id="previewCount">0 images selected</p>
+            </section>
+
+        </main>
+
+        <footer>
+            <p>AWS Image Optimization Pipeline | Built with S3, Lambda, and API Gateway</p>
+            <p class="footer-links">
+                <a href="#" class="footer-link"><i class="fas fa-info-circle"></i> Documentation</a>
+                <a href="#" class="footer-link"><i class="fas fa-code"></i> API Reference</a>
+                <a href="#" class="footer-link"><i class="fas fa-envelope"></i> Contact</a>
+            </p>
+        </footer>
+
     </div>
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1495.0.min.js"></script>
-    <script src="app.js"></script>
+
+    <script src="script.js"></script>
 </body>
+
 </html>
